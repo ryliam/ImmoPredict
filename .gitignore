@@ -1,0 +1,32 @@
+# Environnements virtuels
+venv/
+env/
+.venv/
+ENV/
+
+# Variables secrètes & configuration locale
+.env
+
+# Fichiers volumineux (>100 Mo)
+*.npz
+data/transactions.npz
+
+# Modèles sauvegardés & cache ML (générés automatiquement)
+models_saved/*.joblib
+models_saved/*.parquet
+
+# Python cache & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
