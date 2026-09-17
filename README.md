@@ -8,7 +8,7 @@ sdk_version: 4.44.1
 app_file: app.py
 pinned: false
 license: mit
-short_description: Plateforme prédictive et décisionnelle en investissement immobilier
+short_description: IA predictive pour investissement
 ---
 
 # 🏠 ImmoPredict AI — Plateforme Prédictive & Décisionnelle en Investissement Immobilier
