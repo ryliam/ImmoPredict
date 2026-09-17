@@ -1,3 +1,16 @@
+---
+title: ImmoPredict AI
+emoji: 🏠
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: 4.44.1
+app_file: app.py
+pinned: false
+license: mit
+short_description: Plateforme prédictive et décisionnelle en investissement immobilier
+---
+
 # 🏠 ImmoPredict AI — Plateforme Prédictive & Décisionnelle en Investissement Immobilier
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
@@ -121,3 +134,4 @@ python -m pytest tests/
 
 ## 👤 Auteur
 Projet développé par **ryliam** ([darylwilliam25@gmail.com](mailto:darylwilliam25@gmail.com)).
+
