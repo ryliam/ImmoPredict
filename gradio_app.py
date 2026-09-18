@@ -5,6 +5,12 @@ import sys
 from pathlib import Path
 import pandas as pd
 import gradio as gr
+import spaces
+
+# ZeroGPU requires at least one decorated function on Hugging Face (even if unused)
+@spaces.GPU
+def _dummy_gpu():
+    pass
 
 ROOT_DIR = Path(__file__).resolve().parent
 if str(ROOT_DIR) not in sys.path:
@@ -141,6 +147,7 @@ with gr.Blocks(title="ImmoPredict AI", theme=theme) as demo:
             gr.Markdown("Posez votre question en langage naturel pour une évaluation instantanée.")
             gr.ChatInterface(
                 fn=chat_response,
+                type="messages",
                 examples=[
                     "J'ai 200 000 €, j'aimerais acheter un appartement à Ambérieu-en-Bugey, est-ce une bonne idée ?",
                     "Ce bien à 280 000 € sera-t-il rentable dans 2 ans ?",
