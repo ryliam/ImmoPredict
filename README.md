@@ -1,3 +1,14 @@
+---
+title: ImmoPredict AI
+emoji: 🏠
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: 5.15.0
+app_file: app.py
+pinned: false
+---
+
 # 🏠 ImmoPredict AI — Plateforme Prédictive & Décisionnelle en Investissement Immobilier
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
