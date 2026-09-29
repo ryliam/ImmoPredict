@@ -1,21 +1,41 @@
-# Environnements virtuels
+﻿# =====================================================================
+# .gitignore — ImmoPredict AI
+# Fichiers et dossiers à exclure du suivi Git / GitHub
+# =====================================================================
+
+# 1. Variables d'environnement & Secrets (CRITIQUE)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.token
+*.p12
+
+# 2. Environnements virtuels
 venv/
 env/
 .venv/
 ENV/
+env.bak/
+venv.bak/
 
-# Variables secrètes & configuration locale
-.env
-
-# Fichiers volumineux (>100 Mo)
+# 3. Fichiers volumineux (> 50-100 Mo) & Datasets lourds
 *.npz
 data/transactions.npz
+*.tar.gz
+*.zip
+*.7z
 
-# Modèles sauvegardés & cache ML (générés automatiquement)
-models_saved/*.joblib
-models_saved/*.parquet
+# 4. Modèles de Machine Learning & Cache de features (reproductibles par script)
+models_saved/
+*.joblib
+*.parquet
 
-# Python cache & bytecode
+# 5. Dossiers de brouillons et scripts de test temporaires
+scratch/
+
+# 6. Caches Python & Bytecode
 __pycache__/
 *.py[cod]
 *$py.class
@@ -23,10 +43,24 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+.mypy_cache/
 
-# Jupyter
+# 7. Jupyter Notebooks (Checkpoints & caches)
 .ipynb_checkpoints/
 
-# OS
+# 8. Caches IDE & Éditeurs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# 9. Fichiers système d'exploitation
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# 10. Logs & Fichiers de débogage
+*.log
+
+# 11. Fichiers de conception / maquettes locales (si souhaité)
+archi.excalidraw
