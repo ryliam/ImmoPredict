@@ -27,10 +27,6 @@ data/transactions.npz
 *.zip
 *.7z
 
-# 4. Modèles de Machine Learning & Cache de features
-models_saved/
-*.joblib
-*.parquet
 
 # 5. Dossiers de brouillons et scripts de test temporaires
 scratch/

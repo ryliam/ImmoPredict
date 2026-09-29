@@ -26,6 +26,6 @@ COPY --chown=user:user . .
 # Expose standard Hugging Face Space port
 EXPOSE 7860
 
-# Run Gradio app
-CMD ["python", "app.py"]
+# Run Streamlit app
+CMD ["streamlit", "run", "src/ui/app.py", "--server.port=7860", "--server.address=0.0.0.0", "--server.enableCORS=false", "--server.enableXsrfProtection=false"]
 
