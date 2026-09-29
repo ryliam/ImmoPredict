@@ -27,11 +27,22 @@ agent = RealEstateAgent()
 
 
 def chat_response(message, history):
-    """Handles chat messages with the Real Estate Agent."""
+    """Gère l'échange avec l'assistant IA de triage et qualification de lead."""
     if not message or not str(message).strip():
         return "Veuillez poser une question."
     result = agent.process_query(str(message))
-    return result.get("text", "Une erreur est survenue lors de l'analyse.")
+    reply = result.get("text", "Une erreur est survenue lors de l'analyse.")
+    
+    if result.get("is_handover"):
+        ticket_id = result.get("ticket_id", "TICKET-AUTO")
+        reason = result.get("trigger_reason", "escalation")
+        reply += (
+            f"\n\n---\n"
+            f"📋 **Ticket CRM créé :** `{ticket_id}`\n"
+            f"🎯 **Motif de transfert :** `{reason}`\n"
+            f"🤝 *Votre dossier de qualification complet a été transmis à un conseiller humain.*"
+        )
+    return reply
 
 
 def evaluate_feasibility(action, ville, budget, surface, type_bien, revenu_annuel):
@@ -127,22 +138,32 @@ def recommend_zones(action, budget, revenu_annuel, type_bien, top_k):
 
 def build_app():
     """Construit et retourne l'instance Gradio Blocks."""
-    with gr.Blocks(title="ImmoPredict AI") as demo:
+    with gr.Blocks(title="ImmoPredict AI — Assistant de Qualification & Triage") as demo:
         gr.Markdown("""
-        # 🏠 ImmoPredict AI — Conseil & Prédiction Immobilière
-        *Plateforme d'aide à la décision basée sur le Machine Learning, les données DGFiP/DVF/INSEE et l'architecture MCP.*
+        # 🏠 ImmoPredict AI — Assistant IA & Qualification de Lead
+        ### *Frontline AI Concierge : Zéro temps d'attente, RAG fermé certifié & Transfert commercial qualifié*
+
+        > **🎯 Problématique résolue :** Débordement des équipes commerciales et supports face à l'accumulation des sollicitations entrantes, causant une latence de réponse et une déperdition de prospects qualifiés.
+        >
+        > **⚡ Missions de l'Assistant :**
+        > - **Accueil instantané 24/7** : Réponse immédiate à chaque prospect, élimination du temps d'attente.
+        > - **RAG strict & fermé (Anti-hallucination)** : Réponses exclusives basées sur la base de connaissances certifiée de l'entreprise.
+        > - **Qualification progressive & bienveillante** : Qualification au rythme du prospect (Machine à états souple avec reprise de contexte en cas de digression).
+        > - **Escalade & Handover CRM fluide** : Transmission du dossier complet à un conseiller humain dès que le prospect est mûr ou qu'une question dépasse le champ de compétence.
         """)
 
         with gr.Tabs():
-            # TAB 1 : Chatbot IA
-            with gr.TabItem("💬 Conseiller Conversationnel IA"):
-                gr.Markdown("Posez votre question en langage naturel pour une évaluation instantanée.")
+            # TAB 1 : Chatbot IA de Qualification
+            with gr.TabItem("💬 Assistant IA & Qualification"):
+                gr.Markdown("Discutez avec l'assistant pour qualifier votre projet ou obtenir des informations officielles certifiées.")
                 gr.ChatInterface(
                     fn=chat_response,
                     examples=[
-                        "J'ai 200 000 €, j'aimerais acheter un appartement à Ambérieu-en-Bugey, est-ce une bonne idée ?",
-                        "Ce bien à 280 000 € sera-t-il rentable dans 2 ans ?",
-                        "Quel est le meilleur endroit pour acheter une maison avec un foyer fiscal de 38 000 € ?"
+                        "Bonjour, quels sont vos services pour m'accompagner dans mon projet immobilier ?",
+                        "Comment calculez-vous la rentabilité prévisionnelle à 2 ans d'un bien ?",
+                        "J'ai un budget de 250 000 € et 3 500 € de revenus nets mensuels, puis-je acheter à Ambérieu-en-Bugey ?",
+                        "Pouvez-vous me donner des conseils juridiques sur un litige entre voisins ?",
+                        "Je souhaite être mis en relation avec un conseiller humain pour finaliser mon projet."
                     ]
                 )
 
