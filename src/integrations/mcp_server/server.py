@@ -1,13 +1,12 @@
 import json
 from typing import Dict, Any, List
-from src.mcp_server.tools import (
+from src.integrations.mcp_server.tools import (
     evaluate_property_tool,
     forecast_profitability_tool,
     recommend_best_zones_tool,
     get_market_chart_data_tool
 )
 
-# Schémas des outils MCP exposés au LLM
 MCP_TOOLS_SCHEMAS = [
     {
         "name": "evaluate_property",

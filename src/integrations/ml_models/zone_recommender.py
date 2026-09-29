@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, List, Optional
-from src.data_pipeline.feature_store import FeatureStore
+from src.integrations.data_pipeline.feature_store import FeatureStore
 
 
 class ZoneRecommender:
@@ -55,7 +55,7 @@ class ZoneRecommender:
 
         if is_achat:
             # Évaluation Achat
-            budget_mensuel_credit = (budget * 0.0055) if budget > 10000 else (prix_achat_estime * 0.0055) # Taux mensualité approximatif
+            budget_mensuel_credit = (budget * 0.0055) if budget > 10000 else (prix_achat_estime * 0.0055)
             taux_effort = (budget_mensuel_credit / revenu_mensuel_ref) * 100
             faisabilite_budget = budget >= prix_achat_estime if budget > 10000 else budget_mensuel_credit <= (revenu_mensuel_ref * 0.35)
 
@@ -142,21 +142,18 @@ class ZoneRecommender:
 
         # Filtre / Scoring selon le revenu du foyer
         if revenu_foyer_annuel and revenu_foyer_annuel > 0:
-            # Recherche de communes avec un tissu socio-économique proche ou accessible
             diff_revenu = np.abs(df['revenu_fiscal_moyen'] - revenu_foyer_annuel)
             df['score_adhesion_revenu'] = (1 - (diff_revenu / df['revenu_fiscal_moyen'].max())) * 30
         else:
             df['score_adhesion_revenu'] = 20.0
 
         if is_achat:
-            # Classement Achat / Investissement
             df['score_final'] = (
                 df['score_attractivite_achat'] * 0.5 +
                 (df['rendement_brut_appartement'] * 4.0) +
                 df['score_adhesion_revenu']
             )
         else:
-            # Classement Location
             df['score_final'] = (
                 df['score_attractivite_location'] * 0.6 +
                 (1 - df['taux_vacance']) * 20 +

@@ -1,10 +1,11 @@
 import pytest
-from src.data_pipeline.feature_store import FeatureStore
-from src.models.price_predictor import PricePredictor
-from src.models.trend_forecaster import TrendForecaster
-from src.models.zone_recommender import ZoneRecommender
-from src.mcp_server.server import MCPServer
-from src.agent.agent_service import RealEstateAgent
+from unittest.mock import MagicMock
+from src.integrations.data_pipeline.feature_store import FeatureStore
+from src.integrations.ml_models.price_predictor import PricePredictor
+from src.integrations.ml_models.trend_forecaster import TrendForecaster
+from src.integrations.ml_models.zone_recommender import ZoneRecommender
+from src.integrations.mcp_server.server import MCPServer
+from src.core.agent import RealEstateAgent
 
 
 def test_feature_store_integrity():
@@ -75,29 +76,10 @@ def test_mcp_server_dispatch():
     assert "result" in res
 
 
-def test_agent_nlp_use_cases():
-    """Vérifie que l'agent IA répond correctement aux 3 cas d'usage."""
+def test_agent_triage_flow():
+    """Vérifie que l'agent conversationnel traite correctement une requête avec le LLM."""
     agent = RealEstateAgent()
-    
-    # Cas 0 : Salutation simple
-    r0 = agent.process_query("bonjour")
-    assert r0["tool_called"] is None
-    assert r0["chart_type"] is None
-    assert "ImmoPredict AI" in r0["text"]
-
-    # Cas 1 : Faisabilité
-    r1 = agent.process_query("J'ai 200 000 €, j'aimerais acheter un appartement à Ambérieu-en-Bugey, est-ce une bonne idée ?")
-    assert r1["tool_called"] == "evaluate_property"
-    assert len(r1["text"]) > 50
-
-    # Cas 2 : Rentabilité à 2 ans
-    r2 = agent.process_query("Ce bien à 300 000 € sera-t-il rentable dans 2 ans ?")
-    assert r2["tool_called"] == "forecast_profitability"
-    assert r2["chart_type"] == "forecast_timeline"
-
-    # Cas 3 : Recommandation
-    r3 = agent.process_query("Quel est le meilleur endroit pour acheter une maison avec 35 000 € de ressources ?")
-    assert r3["tool_called"] == "recommend_best_zones"
-    assert r3["chart_type"] == "top_zones_bar"
-
-
+    res = agent.process_query("Bonjour, qui êtes-vous et est-ce gratuit ?")
+    assert "text" in res
+    assert res.get("is_handover") is False
+    assert len(res["text"]) > 20

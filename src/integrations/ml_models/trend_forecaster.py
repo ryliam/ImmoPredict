@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import Dict, Any, List, Optional
-from src.data_pipeline.feature_store import FeatureStore
+from src.integrations.data_pipeline.feature_store import FeatureStore
 
 
 class TrendForecaster:

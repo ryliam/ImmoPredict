@@ -1,9 +1,9 @@
 import json
 from typing import Dict, Any, List, Optional
-from src.models.price_predictor import PricePredictor
-from src.models.trend_forecaster import TrendForecaster
-from src.models.zone_recommender import ZoneRecommender
-from src.data_pipeline.feature_store import FeatureStore
+from src.integrations.ml_models.price_predictor import PricePredictor
+from src.integrations.ml_models.trend_forecaster import TrendForecaster
+from src.integrations.ml_models.zone_recommender import ZoneRecommender
+from src.integrations.data_pipeline.feature_store import FeatureStore
 
 
 # Singletons pour les modèles

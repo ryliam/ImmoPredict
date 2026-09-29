@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Dict, Any, Optional
-from src.config import (
+from config.settings import (
     FILE_EMPRUNTS,
     FILE_ENDETTEMENT,
     FILE_INTERET,

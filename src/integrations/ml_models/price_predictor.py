@@ -4,8 +4,8 @@ import joblib
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 from typing import Dict, Any, Optional
-from src.data_pipeline.feature_store import FeatureStore
-from src.config import (
+from src.integrations.data_pipeline.feature_store import FeatureStore
+from config.settings import (
     PATH_MODEL_PRIX_APT,
     PATH_MODEL_PRIX_MAI,
     PATH_MODEL_LOYER_APT,
@@ -135,3 +135,4 @@ class PricePredictor:
             "revenu_fiscal_moyen": round(revenu_moyen, 2),
             "taux_vacance_pct": round(taux_vacance * 100, 2)
         }
+

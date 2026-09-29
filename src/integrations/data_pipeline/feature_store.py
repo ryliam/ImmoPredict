@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 from typing import Optional, Dict, Any
-from src.data_pipeline.ingestion import load_raw_data
-from src.data_pipeline.cleaning import clean_macro_data, clean_territorial_data
+from src.integrations.data_pipeline.ingestion import load_raw_data
+from src.integrations.data_pipeline.cleaning import clean_macro_data, clean_territorial_data
 
 
 class FeatureStore:
@@ -40,7 +40,6 @@ class FeatureStore:
         df = self.df_territorial.copy()
 
         # Estimation du prix d'achat au m² moyen basé sur le multiplicateur de loyer et le revenu
-        # (Prix moyen au m² = loyer_m2 * 12 / rendement_moyen_territorial (~5.5% à 8% selon revenus))
         facteur_rendement = np.clip(0.09 - (df['revenu_fiscal_moyen'] / 1000000), 0.045, 0.09)
         df['prix_m2_appartement'] = (df['loyer_m2_appartement'] * 12) / facteur_rendement
         df['prix_m2_maison'] = (df['loyer_m2_maison'] * 12) / (facteur_rendement * 1.05)
@@ -49,7 +48,7 @@ class FeatureStore:
         df['rendement_brut_appartement'] = ((df['loyer_m2_appartement'] * 12) / df['prix_m2_appartement']) * 100
         df['rendement_brut_maison'] = ((df['loyer_m2_maison'] * 12) / df['prix_m2_maison']) * 100
 
-        # Score d'attractivité d'achat (0 à 100) : combinaison de pouvoir d'achat, rendement et faible vacance
+        # Score d'attractivité d'achat (0 à 100)
         score_achat = (
             (df['revenu_fiscal_moyen'] / df['revenu_fiscal_moyen'].max()) * 40 +
             (df['rendement_brut_appartement'] / df['rendement_brut_appartement'].max()) * 40 +
@@ -57,7 +56,7 @@ class FeatureStore:
         )
         df['score_attractivite_achat'] = score_achat.clip(10, 99).round(1)
 
-        # Score d'attractivité de location (0 à 100) : coût de loyer abordable par rapport au revenu
+        # Score d'attractivité de location (0 à 100)
         loyer_effort = (df['loyer_m2_appartement'] * 60 * 12) / df['revenu_fiscal_moyen']
         score_loc = (100 - (loyer_effort * 100)).clip(15, 95).round(1)
         df['score_attractivite_location'] = score_loc

@@ -2,15 +2,15 @@ import os
 from pathlib import Path
 
 # Chargement des variables d'environnement (.env)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 try:
     from dotenv import load_dotenv
-    PROJECT_ROOT = Path(__file__).resolve().parent.parent
-    load_dotenv(PROJECT_ROOT / ".env")
+    load_dotenv(PROJECT_ROOT / ".env", override=True)
 except ImportError:
-    PROJECT_ROOT = Path(__file__).resolve().parent.parent
+    pass
 
 # Chemins de base du projet
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 MODELS_DIR = PROJECT_ROOT / "models_saved"
 
@@ -36,6 +36,8 @@ PATH_MODEL_LOYER_MAI = MODELS_DIR / "model_loyer_mai.joblib"
 PATH_SCALER = MODELS_DIR / "scaler.joblib"
 PATH_PROCESSED_DATA = MODELS_DIR / "df_features.parquet"
 
-# Configuration LLM (Google Gemini)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+# Configuration LLM (Hugging Face Router API)
+HF_TOKEN = os.getenv("HF_TOKEN", "")
+HF_MODEL = os.getenv("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct:deepinfra")
+HF_BASE_URL = os.getenv("HF_BASE_URL", "https://router.huggingface.co/v1")
+
