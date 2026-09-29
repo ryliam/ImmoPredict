@@ -1,6 +1,6 @@
 # =====================================================================
 # .gitignore — ImmoPredict AI
-# Fichiers et dossiers à exclure du suivi Git / GitHub / Hugging Face
+# Fichiers et dossiers à exclure du suivi Git / GitHub
 # =====================================================================
 
 # 1. Variables d'environnement & Secrets (CRITIQUE)
@@ -12,7 +12,7 @@
 *.token
 *.p12
 
-# 2. Environnements virtuels Python
+# 2. Environnements virtuels
 venv/
 env/
 .venv/
@@ -20,72 +20,43 @@ ENV/
 env.bak/
 venv.bak/
 
-# 3. Caches Python, Bytecode & Distributions
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-build/
-dist/
-*.egg-info/
-*.egg
-
-# 4. Tests, Couverture de code & Linters
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.mypy_cache/
-.ruff_cache/
-.tox/
-
-# 5. Datasets volumineux & Archives lourdes (> 50-100 Mo)
+# 3. Fichiers volumineux (> 50-100 Mo) & Datasets lourds
 *.npz
 data/transactions.npz
 *.tar.gz
 *.zip
 *.7z
-*.rar
-*.csv.gz
 
-# 6. Gradio & Artefacts Web
-flagged/
-gradio_cached_examples/
 
-# 7. Dossiers de brouillons et scripts de test temporaires
+# 5. Dossiers de brouillons et scripts de test temporaires
 scratch/
-tmp/
-temp/
 
-# 8. Jupyter Notebooks (Checkpoints & caches)
+# 6. Caches Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# 7. Jupyter Notebooks (Checkpoints & caches)
 .ipynb_checkpoints/
 
-# 9. Caches IDE & Éditeurs de code
+# 8. Caches IDE & Éditeurs
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
-*.swp
-*.swo
-*~
 
-# 10. Fichiers système d'exploitation
+# 9. Fichiers système d'exploitation
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# 11. Logs & Fichiers de débogage
+# 10. Logs & Fichiers de débogage
 *.log
-logs/
 
-# 12. Caches locaux d'agents IA (Antigravity / Gemini)
-.gemini/
-.antigravity/
-
-# 13. Fichiers de conception et maquettes locales
+# 11. Fichiers de conception / maquettes locales (si souhaité)
 archi.excalidraw
