@@ -1,4 +1,4 @@
-﻿"""
+"""
 test_conversational_triage.py - Tests de conformité stricte avec archi.excalidraw.
 Composants : User, LLM, Vector Db
 Flux :

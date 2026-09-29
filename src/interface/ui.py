@@ -1,9 +1,9 @@
 """
-Interface Web Gradio pour ImmoPredict AI
+Interface Web Gradio pour ImmoPredict AI - Assistant Conversationnel Exclusif.
+Respect strict du mandat : Uniquement un assistant conversationnel, aucune interface secondaire.
 """
 import sys
 from pathlib import Path
-import pandas as pd
 import gradio as gr
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
@@ -11,203 +11,173 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from src.core.agent import RealEstateAgent
-from src.integrations.mcp_server.tools import (
-    evaluate_property_tool,
-    forecast_profitability_tool,
-    recommend_best_zones_tool,
-    get_market_chart_data_tool
-)
-from src.interface.charts import (
-    create_forecast_timeline_chart,
-    create_top_zones_chart,
-    create_macro_market_chart
-)
 
 agent = RealEstateAgent()
 
 
 def chat_response(message, history):
-    """Handles chat messages with the Real Estate Agent."""
+    """Gère les messages conversationnels avec l'agent ImmoPredict AI."""
     if not message or not str(message).strip():
         return "Veuillez poser une question."
     result = agent.process_query(str(message))
     return result.get("text", "Une erreur est survenue lors de l'analyse.")
 
 
-def evaluate_feasibility(action, ville, budget, surface, type_bien, revenu_annuel):
-    """Cas 1 : Faisabilité & Opportunité d'un projet."""
-    try:
-        res = evaluate_property_tool(
-            budget=float(budget),
-            action=action.lower(),
-            ville=ville.strip(),
-            type_bien=type_bien.lower(),
-            surface_m2=float(surface),
-            revenu_foyer_annuel=float(revenu_annuel) if revenu_annuel else None
-        )
-        if "erreur" in res:
-            return f"❌ {res['erreur']}", None
-
-        verdict = res.get("verdict", "")
-        taux_effort = f"{res.get('taux_effort_pct', 0):.1f} %" if res.get("taux_effort_pct") else "N/A"
-        
-        md_res = f"""
-### 📊 Résultat de l'analyse — {res.get('ville', ville)} ({res.get('departement', '')})
-
-- **Verdict :** **{verdict.upper()}**
-- **Type de bien :** {res.get('type_bien')} ({res.get('surface_m2')} m²)
-- **Prix / Loyer estimé :** {res.get('estimation_prix_ou_loyer', 0):,.0f} €
-- **Prix moyen constaté :** {res.get('prix_ou_loyer_moyen_m2', 0):.1f} €/m²
-- **Taux d'effort calculé :** {taux_effort}
-- **Taux de vacance locale :** {res.get('taux_vacance_pct', 0):.1f} %
-- **Revenu moyen des ménages :** {res.get('revenu_moyen_commune', 0):,.0f} €/an
-
-> **💡 Conseil expert :** {res.get('conseil', '')}
-        """
-
-        chart_data = get_market_chart_data_tool(ville=ville)
-        fig = create_macro_market_chart(chart_data)
-        return md_res, fig
-    except Exception as e:
-        return f"❌ Erreur lors de l'évaluation : {str(e)}", None
-
-
-def simulate_profitability(prix_achat, loyer_mensuel, ville, horizon):
-    """Cas 2 : Rentabilité prévisionnelle."""
-    try:
-        res = forecast_profitability_tool(
-            prix_achat=float(prix_achat),
-            loyer_mensuel=float(loyer_mensuel) if loyer_mensuel else None,
-            ville=ville.strip() if ville else None,
-            horizon_annees=int(horizon)
-        )
-        if "erreur" in res:
-            return f"❌ {res['erreur']}", None
-
-        md_res = f"""
-### 📈 Simulation de Rentabilité à {horizon} ans
-
-- **Prix d'acquisition :** {res.get('prix_achat', 0):,.0f} €
-- **Rendement locatif brut :** **{res.get('rendement_brut_initial_pct', 0):.2f} %**
-- **Loyer mensuel projeté (an {horizon}) :** {res.get('loyer_mensuel_futur', 0):,.0f} €/mois
-- **Plus-value prévisionnelle :** {res.get('plus_value_estimee', 0):,.0f} €
-- **Cash-flow net cumulé :** {res.get('cashflow_net_cumule', 0):,.0f} €
-- **Gain financier total :** **{res.get('gain_total_estime', 0):,.0f} €**
-- **ROI global estimé :** **{res.get('roi_global_pct', 0):.2f} %**
-
-> **💡 Commentaire :** {res.get('analyse', '')}
-        """
-
-        chart_data = res.get("projection_annuelle", [])
-        fig = create_forecast_timeline_chart(chart_data)
-        return md_res, fig
-    except Exception as e:
-        return f"❌ Erreur lors de la simulation : {str(e)}", None
-
-
-def recommend_zones(action, budget, revenu_annuel, type_bien, top_k):
-    """Cas 3 : Recommandation de meilleures communes."""
-    try:
-        zones = recommend_best_zones_tool(
-            action=action.lower(),
-            budget=float(budget) if budget else None,
-            revenu_foyer_annuel=float(revenu_annuel) if revenu_annuel else None,
-            type_bien=type_bien.lower(),
-            top_k=int(top_k)
-        )
-        if not zones:
-            return "Aucune zone trouvée pour ces critères.", None
-
-        df_display = pd.DataFrame(zones)
-        fig = create_top_zones_chart(zones)
-        return df_display, fig
-    except Exception as e:
-        return f"❌ Erreur lors de la recommandation : {str(e)}", None
+CUSTOM_CSS = """
+.gradio-container {
+    max-width: 1280px !important;
+    margin: 0 auto !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.header-banner {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #ffffff;
+    padding: 24px 30px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+.header-title {
+    font-size: 1.85rem;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.header-badge {
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.header-subtitle {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.4;
+}
+.side-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.side-card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.step-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.step-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 0.84rem;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.step-box.highlight {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+    font-weight: 500;
+}
+"""
 
 
 def build_app():
-    """Construit et retourne l'instance Gradio Blocks."""
-    with gr.Blocks(title="ImmoPredict AI") as demo:
-        gr.Markdown("""
-        # 🏠 ImmoPredict AI — Conseil & Prédiction Immobilière
-        *Plateforme d'aide à la décision basée sur le Machine Learning, les données DGFiP/DVF/INSEE et l'architecture MCP.*
+    """Construit l'application Gradio strictement conversationnelle."""
+    with gr.Blocks(title="ImmoPredict AI — Assistant Conversationnel", css=CUSTOM_CSS) as demo:
+        gr.HTML("""
+        <div class="header-banner">
+            <div class="header-title">
+                <span>🏢 ImmoPredict AI</span>
+                <span class="header-badge">Frontline AI Concierge</span>
+            </div>
+            <p class="header-subtitle">
+                Assistant conversationnel intelligent pour l'accueil instantané, la réponse certifiée RAG et la qualification progressive de leads immobiliers.
+            </p>
+        </div>
         """)
 
-        with gr.Tabs():
-            # TAB 1 : Chatbot IA
-            with gr.TabItem("💬 Conseiller Conversationnel IA"):
-                gr.Markdown("Posez votre question en langage naturel pour une évaluation instantanée.")
+        with gr.Row():
+            # Colonne Principale : Interface de Chat totalement libérée (70%)
+            with gr.Column(scale=7):
                 gr.ChatInterface(
                     fn=chat_response,
-                    examples=[
-                        "J'ai 200 000 €, j'aimerais acheter un appartement à Ambérieu-en-Bugey, est-ce une bonne idée ?",
-                        "Ce bien à 280 000 € sera-t-il rentable dans 2 ans ?",
-                        "Quel est le meilleur endroit pour acheter une maison avec un foyer fiscal de 38 000 € ?"
-                    ]
+                    textbox=gr.Textbox(
+                        placeholder="Écrivez votre message ou décrivez votre projet d'investissement...",
+                        container=False,
+                        scale=7
+                    )
                 )
 
-            # TAB 2 : Faisabilité & Opportunité (Cas 1)
-            with gr.TabItem("📍 Faisabilité & Opportunité"):
-                with gr.Row():
-                    with gr.Column():
-                        c1_action = gr.Radio(["Achat", "Location"], label="Projet", value="Achat")
-                        c1_ville = gr.Textbox(label="Ville ou Commune", value="Ambérieu-en-Bugey")
-                        c1_budget = gr.Number(label="Budget total (€)", value=200000)
-                        c1_surface = gr.Number(label="Surface souhaitée (m²)", value=65)
-                        c1_type = gr.Radio(["appartement", "maison"], label="Type de bien", value="appartement")
-                        c1_revenu = gr.Number(label="Revenu annuel fiscal du foyer (€, optionnel)", value=35000)
-                        c1_btn = gr.Button("🔍 Analyser l'opportunité", variant="primary")
+            # Colonne Latérale : Tableau de Bord & Indicateurs de Qualification (30%)
+            with gr.Column(scale=3):
+                gr.HTML("""
+                <div class="side-card">
+                    <div class="side-card-title">🛡️ Garanties de Prise en Charge</div>
+                    <div class="step-row">
+                        <div class="step-box highlight">
+                            <span>⚡</span> <strong>Accueil Instantané :</strong> Zéro latence 24/7
+                        </div>
+                        <div class="step-box highlight">
+                            <span>📚</span> <strong>RAG Strict :</strong> Connaissances certifiées
+                        </div>
+                        <div class="step-box highlight">
+                            <span>🔄</span> <strong>Machine à États :</strong> Suivi souple
+                        </div>
+                        <div class="step-box highlight">
+                            <span>🤝</span> <strong>Handover CRM :</strong> Escalade humaine qualifiée
+                        </div>
+                    </div>
+                </div>
 
-                    with gr.Column():
-                        c1_out_md = gr.Markdown()
-                        c1_out_plot = gr.Plot(label="Graphique Marché")
+                <div class="side-card">
+                    <div class="side-card-title">📊 Étapes de Qualification</div>
+                    <div class="step-row">
+                        <div class="step-box">
+                            <span>1️⃣</span> Présentation des Outils & Mission
+                        </div>
+                        <div class="step-box">
+                            <span>2️⃣</span> Définition du Projet (Achat / Locatif)
+                        </div>
+                        <div class="step-box">
+                            <span>3️⃣</span> Recueil Budget, Surface & Zone
+                        </div>
+                        <div class="step-box">
+                            <span>4️⃣</span> Transfert & Clôture avec Conseiller
+                        </div>
+                    </div>
+                </div>
 
-                c1_btn.click(
-                    evaluate_feasibility,
-                    inputs=[c1_action, c1_ville, c1_budget, c1_surface, c1_type, c1_revenu],
-                    outputs=[c1_out_md, c1_out_plot]
-                )
-
-            # TAB 3 : Rentabilité 2 ans (Cas 2)
-            with gr.TabItem("📈 Simulateur Rentabilité & ROI"):
-                with gr.Row():
-                    with gr.Column():
-                        c2_prix = gr.Number(label="Prix d'achat du bien (€)", value=280000)
-                        c2_loyer = gr.Number(label="Loyer mensuel espéré (€, optionnel)", value=1100)
-                        c2_ville = gr.Textbox(label="Ville (optionnel)", value="Lyon")
-                        c2_horizon = gr.Slider(minimum=1, maximum=10, step=1, value=2, label="Horizon de détention (années)")
-                        c2_btn = gr.Button("📊 Simuler la rentabilité", variant="primary")
-
-                    with gr.Column():
-                        c2_out_md = gr.Markdown()
-                        c2_out_plot = gr.Plot(label="Trajectoire ROI & Cash-Flow")
-
-                c2_btn.click(
-                    simulate_profitability,
-                    inputs=[c2_prix, c2_loyer, c2_ville, c2_horizon],
-                    outputs=[c2_out_md, c2_out_plot]
-                )
-
-            # TAB 4 : Recommandation Top Villes (Cas 3)
-            with gr.TabItem("🏆 Recommandation de Communes"):
-                with gr.Row():
-                    with gr.Column():
-                        c3_action = gr.Radio(["Achat", "Location"], label="Action", value="Achat")
-                        c3_budget = gr.Number(label="Budget (€)", value=250000)
-                        c3_revenu = gr.Number(label="Revenu fiscal annuel du foyer (€)", value=40000)
-                        c3_type = gr.Radio(["appartement", "maison"], label="Type de bien", value="appartement")
-                        c3_top_k = gr.Slider(minimum=3, maximum=15, step=1, value=5, label="Nombre de villes recommandées")
-                        c3_btn = gr.Button("🏆 Trouver les meilleures communes", variant="primary")
-
-                    with gr.Column():
-                        c3_out_df = gr.DataFrame(label="Top Communes Recommandées")
-                        c3_out_plot = gr.Plot(label="Comparatif des Villes")
-
-                c3_btn.click(
-                    recommend_zones,
-                    inputs=[c3_action, c3_budget, c3_revenu, c3_type, c3_top_k],
-                    outputs=[c3_out_df, c3_out_plot]
-                )
+                <div class="side-card">
+                    <div class="side-card-title">ℹ️ Escalade Commerciale</div>
+                    <p style="font-size: 0.83rem; color: #64748b; margin: 0; line-height: 1.45;">
+                        Dès que votre profil est qualifié ou si votre demande dépasse le périmètre certifié, 
+                        un <strong>Ticket CRM</strong> est généré pour transmettre votre dossier sans perte de contexte.
+                    </p>
+                </div>
+                """)
 
     return demo
 

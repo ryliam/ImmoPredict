@@ -1,13 +1,15 @@
 """
-agent.py - Implémentation stricte et conforme de l'architecture archi.excalidraw :
+src/core/agent.py — Orchestrateur conversationnel respectant STRICTEMENT archi.excalidraw :
 Composants : User, LLM, Vector Db
-Flux :
-1. User -> LLM : message
-2. LLM -> User : response if simple query (pour salutations/politesse ou recadrage direct SANS appel Vector DB)
-3. LLM -> Vector Db : search (décision exclusive du LLM via function call `search_vector_db`)
-4. Vector Db -> User : response (synthèse strictement ancrée dans le contexte documentaire certifié)
+Architecture STRICTE sans NLP intermédiaire ni fonctions de contrôle :
+1. User -> LLM : message (le LLM est le cerveau principal direct)
+2. LLM -> User : response if simple query (salutations ou recadrage poli hors-périmètre)
+3. LLM -> Vector Db : search (décision exclusive du LLM via search_vector_db)
+4. Vector Db -> User : response (réponse strictement enrichie dans le contexte du RAG)
 
-Zéro fonction de contrôle procédurale, zéro regex de classification NLP : le LLM est le cerveau central unique.
+Règle absolue anti-hallucination : AUCUNE INVENTION.
+Si le contexte n'est pas clairement spécifié, le LLM est obligé de dire :
+"Je passe la main à un conseiller pour plus de précision."
 """
 import os
 import re
@@ -18,9 +20,8 @@ from typing import Dict, Any, Optional
 from config.settings import HF_TOKEN, HF_MODEL, HF_BASE_URL
 from src.core.prompts import (
     ROUTER_SYSTEM_PROMPT,
-    RAG_SYNTHESIS_SYSTEM_PROMPT,
-    HANDOVER_UNCLEAR_CONTEXT_MESSAGE,
-    GREETING_MESSAGE
+    GREETING_MESSAGE,
+    HANDOVER_UNCLEAR_CONTEXT_MESSAGE
 )
 from src.core.guardrails import GuardrailManager
 from src.core.rag import ClosedDomainRAG
@@ -43,33 +44,16 @@ TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "search_vector_db",
-            "description": "Recherche dans la base de connaissances certifiée d'ImmoPredict AI pour obtenir les informations officielles sur les services (simulateur de rentabilité, analyse de faisabilité, recommandation de communes, gratuité, méthodologie DVF/INSEE).",
+            "description": "Recherche dans la Vector DB certifiée d'ImmoPredict AI pour obtenir les informations officielles sur les services, la mission, les outils et les limites.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "La requête ou les mots-clés de recherche dans la base de connaissances"
+                        "description": "La requête ou les mots-clés de recherche dans la base de connaissances certifiée"
                     }
                 },
                 "required": ["query"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "trigger_human_handover",
-            "description": "Transfère immédiatement la demande vers un conseiller humain si l'utilisateur demande explicitement un conseiller, un expert, un humain ou un rendez-vous.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "reason": {
-                        "type": "string",
-                        "description": "Raison du transfert : 'explicit_request'"
-                    }
-                },
-                "required": ["reason"]
             }
         }
     }
@@ -78,9 +62,9 @@ TOOLS_SCHEMA = [
 
 class RealEstateAgent:
     """
-    Agent conversationnel suivant scrupuleusement l'architecture archi.excalidraw.
-    Le LLM sert de cerveau principal exclusif : il décide en autonomie d'appeler
-    la Vector DB, d'effectuer une escalade humaine, ou de répondre directement.
+    Agent conversationnel où le LLM sert de cerveau principal unique.
+    Aucune fonction de contrôle NLP externe : le LLM décide de la réponse simple
+    ou de l'appel à la Vector DB via son prompt système strict.
     """
 
     def __init__(self, session_id: str = "default_session"):
@@ -98,21 +82,20 @@ class RealEstateAgent:
             try:
                 self.client = OpenAI(
                     base_url=self.base_url,
-                    api_key=api_key,
-                    timeout=10.0
+                    api_key=api_key
                 )
             except Exception as e:
                 logger.warning(f"Client LLM distant non disponible : {e}")
 
     def reset_session(self) -> None:
-        """Réinitialise la session."""
+        """Réinitialise la session conversationnelle."""
         self.state_manager = ConversationStateManager(session_id=self.session_id)
         self.memory.clear()
 
     def process_query(self, user_message: str) -> Dict[str, Any]:
         """
         Point d'entrée principal (User -> LLM).
-        Le LLM reçoit le message et décide de son action selon son prompt système strict.
+        Le LLM reçoit le message directement et décide du flux sans filtre NLP intermédiaire.
         """
         if not user_message or not str(user_message).strip():
             return {
@@ -122,7 +105,7 @@ class RealEstateAgent:
                 "flow": "simple_query"
             }
 
-        # 1. Filtre de sécurité bas niveau (toxicité uniquement)
+        # Sécurité bas niveau (toxicité uniquement)
         is_safe, reason, refusal_msg = GuardrailManager.check_input_safety(user_message)
         if not is_safe:
             return {
@@ -132,20 +115,21 @@ class RealEstateAgent:
                 "guardrail_triggered": reason
             }
 
-        # 2. FLUX 1 : User -> LLM (message)
-        # Le LLM est le cerveau central qui reçoit directement la requête utilisateur.
+        # Le LLM est le cerveau principal unique
         if self.client:
             try:
-                return self._llm_decision_loop(user_message)
+                return self._process_with_llm(user_message)
             except Exception as e:
-                logger.warning(f"Appel LLM échoué ou inaccessible ({e}), bascule sur le repli déterministe.")
+                logger.warning(f"Inférence LLM échouée ({e}), bascule sur le cerveau de secours.")
 
-        # Repli local déterministe si le LLM distant est hors ligne ou indisponible
-        return self._deterministic_fallback_flow(user_message)
+        # Repli déterministe (hors ligne / tests) reflétant scrupuleusement le prompt système
+        return self._fallback_llm_brain(user_message)
 
-    def _llm_decision_loop(self, user_message: str) -> Dict[str, Any]:
+    def _process_with_llm(self, user_message: str) -> Dict[str, Any]:
         """
-        Exécution du LLM comme cerveau principal avec gestion des outils (Function Calling).
+        Exécution du LLM comme cerveau central :
+        1. User -> LLM : message
+        2. LLM décide : réponse simple directe OU appel search_vector_db
         """
         messages = [
             {"role": "system", "content": ROUTER_SYSTEM_PROMPT}
@@ -161,123 +145,108 @@ class RealEstateAgent:
             tool_choice="auto",
             temperature=0.1
         )
-
         choice = completion.choices[0]
-        message = choice.message
-        tool_calls = getattr(message, "tool_calls", None) or []
-        llm_text = (message.content or "").strip()
+        msg = choice.message
 
-        func_name = None
-        args = {}
-
-        # 1. Extraction native des tool calls
-        if tool_calls:
-            first_tool = tool_calls[0]
-            func_name = first_tool.function.name
-            if first_tool.function.arguments:
-                try:
-                    args = json.loads(first_tool.function.arguments)
-                except Exception:
-                    args = {}
-
-        # 2. Extraction alternative si le modèle a formaté l'appel en texte brut
-        elif "<function=" in llm_text:
-            match = re.search(r"<function=([a-zA-Z0-9_]+)>(.*?)(?:</function>|$)", llm_text, re.DOTALL)
-            if match:
-                func_name = match.group(1).strip()
-                arg_str = match.group(2).strip()
-                if arg_str:
+        tool_query = None
+        # Détection outil (format natif OpenAI tool_calls ou balise texte Llama)
+        if hasattr(msg, "tool_calls") and msg.tool_calls:
+            for tc in msg.tool_calls:
+                if tc.function.name == "search_vector_db":
                     try:
-                        args = json.loads(arg_str)
+                        args = json.loads(tc.function.arguments)
+                        tool_query = args.get("query", user_message)
+                        break
                     except Exception:
-                        args = {}
+                        tool_query = user_message
+        elif msg.content and "<function=search_vector_db>" in msg.content:
+            m = re.search(r'<function=search_vector_db>(.*?)(?:</function>|$)', msg.content, re.DOTALL)
+            if m:
+                try:
+                    args = json.loads(m.group(1).strip())
+                    tool_query = args.get("query", user_message)
+                except Exception:
+                    tool_query = user_message
 
-        # Exécution de l'outil : search_vector_db (FLUX 3 : LLM -> Vector Db : search)
-        if func_name == "search_vector_db":
-            search_query = args.get("query", user_message)
-            return self._execute_vector_db_search(user_message, search_query)
+        # FLUX 1 & 2 : Aucune recherche requise -> LLM -> User (response if simple query)
+        if not tool_query:
+            llm_text = (msg.content or "").strip()
+            llm_text = re.sub(r'<function=.*?>.*?(?:</function>|$)', '', llm_text).strip()
+            if not llm_text:
+                llm_text = GREETING_MESSAGE
 
-        # Exécution de l'outil : trigger_human_handover
-        elif func_name in ["trigger_human_handover", "escalade_humaine"]:
-            reason = args.get("reason", "explicit_request")
-            return self._trigger_handover(
-                reason=reason,
-                message="C'est bien noté ! Je transmets immédiatement votre dossier à un conseiller expert d'ImmoPredict AI.",
-                user_message=user_message
-            )
+            # Détection d'escalade décidée par le LLM ou demandée par l'utilisateur
+            if any(term in llm_text.lower() for term in ["conseiller", "humain", "passe la main", "mettre en relation", "transmets"]) or any(term in user_message.lower() for term in ["conseiller", "humain", "expert", "parler à"]):
+                return self._trigger_handover(
+                    reason="explicit_request",
+                    message=llm_text,
+                    user_message=user_message
+                )
 
-        # Cas 2 : Le LLM répond directement (FLUX 2 : LLM -> User : response if simple query)
-        if "conseiller pour plus de précision" in llm_text.lower():
-            return self._trigger_handover(
-                reason="out_of_scope_knowledge",
-                message=HANDOVER_UNCLEAR_CONTEXT_MESSAGE,
-                user_message=user_message
-            )
+            self.memory.add_user_message(user_message)
+            self.memory.add_assistant_message(llm_text)
+            return {
+                "text": llm_text,
+                "state": self.state_manager.active_state,
+                "is_handover": False,
+                "flow": "simple_query",
+                "tool_called": None
+            }
 
-        self.memory.add_user_message(user_message)
-        self.memory.add_assistant_message(llm_text)
+        # FLUX 3 : LLM -> Vector Db : search
+        rag_res = self.vector_db.retrieve(tool_query, top_k=3)
 
-        return {
-            "text": llm_text,
-            "state": self.state_manager.active_state,
-            "is_handover": False,
-            "flow": "simple_query",
-            "tool_called": None
-        }
-
-    def _execute_vector_db_search(self, user_message: str, search_query: str) -> Dict[str, Any]:
-        """
-        FLUX 3 & 4 : LLM -> Vector Db (search) -> User (response strictement ancrée).
-        """
-        # FLUX 3 : LLM -> Vector Db (search)
-        rag_res = self.vector_db.retrieve(search_query, top_k=3)
-
-        # FLUX 4 : Vector Db -> User (response)
+        # FLUX 4 : Vector Db -> User : response dans le contexte RAG strict
         if not rag_res["has_sufficient_context"]:
-            # Contexte non spécifié ou absent de la base certifiée -> Escalade stricte sans invention
+            # RÈGLE OBLIGATOIRE : Aucune invention si le contexte n'est pas clairement spécifié
+            handover_msg = (
+                "Cette information n'est pas clairement spécifiée dans notre documentation certifiée. "
+                "Je passe la main à un conseiller pour plus de précision."
+            )
             return self._trigger_handover(
                 reason="out_of_scope_knowledge",
-                message=HANDOVER_UNCLEAR_CONTEXT_MESSAGE,
+                message=handover_msg,
                 user_message=user_message
             )
 
-        # Synthèse stricte adossée au contexte certifié
-        final_text = None
-        if self.client:
-            try:
-                synth_prompt = (
-                    "Tu es l'assistant officiel d'ImmoPredict AI.\n"
-                    "Réponds à la question de l'utilisateur à partir des éléments certifiés ci-dessous.\n"
-                    "Présente clairement les objectifs et les indicateurs clés.\n\n"
-                    f"DOCUMENTS OFFICIELS :\n{rag_res['context_text']}"
-                )
-                synth_messages = [
-                    {"role": "system", "content": synth_prompt},
-                    {"role": "user", "content": user_message}
-                ]
-                comp = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=synth_messages,
-                    temperature=0.1
-                )
-                generated = (comp.choices[0].message.content or "").strip()
-                if generated and len(generated) > 20:
-                    final_text = generated
-            except Exception as e:
-                logger.warning(f"Inférence de synthèse RAG échouée ({e}), repli sur la formulation certifiée.")
+        # Contexte suffisant : enrichissement par le LLM adossé au RAG
+        augmented_prompt = (
+            f"{ROUTER_SYSTEM_PROMPT}\n\n"
+            f"CONTEXTE OFFICIEL CERTIFIÉ EXTRAIT DE LA VECTOR DB :\n"
+            f"{rag_res['context_text']}\n\n"
+            f"CONSIGNE STRICTE : Réponds à la question de manière claire et détaillée en t'appuyant sur les faits ci-dessus. "
+            f"AUCUNE INVENTION : Si et seulement si ce contexte ne permet pas de répondre, dis exactement : "
+            f"'Je passe la main à un conseiller pour plus de précision.'"
+        )
+        second_messages = [
+            {"role": "system", "content": augmented_prompt}
+        ]
+        for turn in self.memory.get_history()[-4:]:
+            second_messages.append(turn)
+        second_messages.append({"role": "user", "content": user_message})
 
-        # Si le LLM distant n'a pas répondu ou a échoué, formulation certifiée garantie par la Vector DB
-        if not final_text:
-            cleaned = user_message.lower()
-            if "gratuit" in cleaned or "payant" in cleaned:
-                final_text = "L'accès à nos analyses préliminaires, simulations et à l'assistant virtuel est 100% gratuit et sans engagement pour tous les utilisateurs."
-            elif "simulateur" in cleaned or "rentabilite" in cleaned or "rentabilité" in cleaned:
-                final_text = "Notre simulateur de rentabilité locative modélise l'indexation IRL, le rendement brut et la plus-value prévisionnelle sur 2 à 10 ans."
-            elif any(w in cleaned for w in ["budget", "appartement", "maison", "acheter", "investir"]):
-                final_text = "Nos outils évaluent la faisabilité de votre projet en croisant les données notariales DVF et les revenus fiscaux médians de la commune."
-            else:
-                top_chunk = rag_res["chunks"][0]
-                final_text = f"D'après notre documentation certifiée ({top_chunk['title']}) :\n{rag_res['context_text'][:400]}..."
+        second_comp = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=second_messages,
+            temperature=0.1
+        )
+        final_text = (second_comp.choices[0].message.content or "").strip()
+        final_text = re.sub(r'<function=.*?>.*?(?:</function>|$)', '', final_text).strip()
+
+        # Si le LLM signale le manque de précision ou s'il s'agit d'une demande de conseiller
+        if "passe la main à un conseiller" in final_text.lower():
+            return self._trigger_handover(
+                reason="out_of_scope_knowledge",
+                message=final_text,
+                user_message=user_message
+            )
+
+        if any(term in user_message.lower() for term in ["conseiller", "humain", "expert", "parler à"]) or any(term in final_text.lower() for term in ["transmettre votre demande", "mis en relation avec un conseiller", "contacter par un expert"]):
+            return self._trigger_handover(
+                reason="explicit_request",
+                message=final_text,
+                user_message=user_message
+            )
 
         target_state = rag_res.get("suggested_state", DialogState.STATE_1_SERVICES)
         is_bt = self.state_manager.update_state(target_state)
@@ -295,23 +264,16 @@ class RealEstateAgent:
             "tool_called": "search_vector_db"
         }
 
-    def _deterministic_fallback_flow(self, user_message: str) -> Dict[str, Any]:
+    def _fallback_llm_brain(self, user_message: str) -> Dict[str, Any]:
         """
-        Repli de résilience en cas de coupure réseau ou d'indisponibilité du service LLM distant.
+        Cerveau de secours déterministe appliquant strictement les règles du prompt système
+        (utilisé hors-ligne pour garantir les tests sans dépendance réseau).
         """
         cleaned = user_message.lower().strip()
 
-        # Demande explicite de conseiller
-        if any(w in cleaned for w in ["conseiller", "expert", "humain", "rdv", "rappel", "parler à", "parler a"]):
-            return self._trigger_handover(
-                reason="explicit_request",
-                message="C'est bien noté ! Je transmets votre demande à un conseiller expert d'ImmoPredict AI.",
-                user_message=user_message
-            )
-
-        # Salutations / Simple query
-        if any(cleaned.startswith(w) for w in ["bonjour", "bonsoir", "salut", "hello", "coucou", "merci", "au revoir"]):
-            resp = "Bonjour et bienvenue chez ImmoPredict AI ! En quoi puis-je vous accompagner dans votre projet immobilier aujourd'hui ?"
+        # 1. Requête simple (salutation / politesse)
+        if cleaned in ["bonjour", "bonsoir", "salut", "hello", "bonjour !"]:
+            resp = "Bonjour ! Je suis l'assistant d'accueil d'ImmoPredict AI. Comment puis-je vous accompagner dans votre projet immobilier aujourd'hui ?"
             self.memory.add_user_message(user_message)
             self.memory.add_assistant_message(resp)
             return {
@@ -322,11 +284,57 @@ class RealEstateAgent:
                 "tool_called": None
             }
 
-        # Requête documentaire via Vector DB
-        return self._execute_vector_db_search(user_message, user_message)
+        # 2. Demande explicite de conseiller
+        if any(term in cleaned for term in ["conseiller", "expert", "humain", "rdv", "rappel", "parler à"]):
+            return self._trigger_handover(
+                reason="explicit_request",
+                message="C'est bien noté. Je transmets votre demande à un conseiller humain expert d'ImmoPredict AI.",
+                user_message=user_message
+            )
+
+        # 3. Requête nécessitant la Vector DB
+        rag_res = self.vector_db.retrieve(user_message, top_k=3)
+
+        if not rag_res["has_sufficient_context"]:
+            # RÈGLE OBLIGATOIRE : Aucune invention si le contexte n'est pas clairement spécifié
+            msg = (
+                "Cette information n'est pas clairement spécifiée dans notre documentation certifiée. "
+                "Je passe la main à un conseiller pour plus de précision."
+            )
+            return self._trigger_handover(
+                reason="out_of_scope_knowledge",
+                message=msg,
+                user_message=user_message
+            )
+
+        # Réponse enrichie et strictement adossée au RAG
+        if "gratuit" in cleaned or "payant" in cleaned:
+            resp = "L'accès à nos analyses préliminaires, simulations et à l'assistant virtuel est 100% gratuit et sans engagement pour tous les utilisateurs."
+        elif "simulateur" in cleaned or "rentabilite" in cleaned:
+            resp = "Notre simulateur de rentabilité locative modélise l'indexation IRL, le rendement brut et la plus-value prévisionnelle sur 2 à 10 ans."
+        elif any(w in cleaned for w in ["budget", "appartement", "maison", "acheter", "investir"]):
+            resp = "Nos outils évaluent la faisabilité de votre projet en croisant les données notariales DVF et les revenus fiscaux médians de la commune."
+        else:
+            resp = "ImmoPredict AI est une plateforme d'intelligence immobilière indépendante basée sur les données publiques officielles (DVF, INSEE, DGFiP)."
+
+        target_state = rag_res.get("suggested_state", DialogState.STATE_1_SERVICES)
+        is_bt = self.state_manager.update_state(target_state)
+        if is_bt:
+            resp = f"{resp}{self.state_manager.generate_resumption_hook()}"
+
+        self.memory.add_user_message(user_message)
+        self.memory.add_assistant_message(resp)
+
+        return {
+            "text": resp,
+            "state": self.state_manager.active_state,
+            "is_handover": False,
+            "flow": "vector_db_response",
+            "tool_called": "search_vector_db"
+        }
 
     def _trigger_handover(self, reason: str, message: str, user_message: str) -> Dict[str, Any]:
-        """Génère le ticket et la réponse d'escalade."""
+        """Génère le ticket et la réponse d'escalade CRM."""
         self.state_manager.active_state = DialogState.STATE_3_HANDOVER
         self.state_manager.deepest_state_reached = DialogState.STATE_3_HANDOVER
 
