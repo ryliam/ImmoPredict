@@ -1,4 +1,4 @@
-﻿# =====================================================================
+# =====================================================================
 # .gitignore — ImmoPredict AI
 # Fichiers et dossiers à exclure du suivi Git / GitHub
 # =====================================================================
@@ -27,7 +27,7 @@ data/transactions.npz
 *.zip
 *.7z
 
-# 4. Modèles de Machine Learning & Cache de features (reproductibles par script)
+# 4. Modèles de Machine Learning & Cache de features
 models_saved/
 *.joblib
 *.parquet
