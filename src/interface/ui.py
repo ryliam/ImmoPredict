@@ -131,53 +131,7 @@ def build_app():
                     )
                 )
 
-            # Colonne Latérale : Tableau de Bord & Indicateurs de Qualification (30%)
-            with gr.Column(scale=3):
-                gr.HTML("""
-                <div class="side-card">
-                    <div class="side-card-title">🛡️ Garanties de Prise en Charge</div>
-                    <div class="step-row">
-                        <div class="step-box highlight">
-                            <span>⚡</span> <strong>Accueil Instantané :</strong> Zéro latence 24/7
-                        </div>
-                        <div class="step-box highlight">
-                            <span>📚</span> <strong>RAG Strict :</strong> Connaissances certifiées
-                        </div>
-                        <div class="step-box highlight">
-                            <span>🔄</span> <strong>Machine à États :</strong> Suivi souple
-                        </div>
-                        <div class="step-box highlight">
-                            <span>🤝</span> <strong>Handover CRM :</strong> Escalade humaine qualifiée
-                        </div>
-                    </div>
-                </div>
-
-                <div class="side-card">
-                    <div class="side-card-title">📊 Étapes de Qualification</div>
-                    <div class="step-row">
-                        <div class="step-box">
-                            <span>1️⃣</span> Présentation des Outils & Mission
-                        </div>
-                        <div class="step-box">
-                            <span>2️⃣</span> Définition du Projet (Achat / Locatif)
-                        </div>
-                        <div class="step-box">
-                            <span>3️⃣</span> Recueil Budget, Surface & Zone
-                        </div>
-                        <div class="step-box">
-                            <span>4️⃣</span> Transfert & Clôture avec Conseiller
-                        </div>
-                    </div>
-                </div>
-
-                <div class="side-card">
-                    <div class="side-card-title">ℹ️ Escalade Commerciale</div>
-                    <p style="font-size: 0.83rem; color: #64748b; margin: 0; line-height: 1.45;">
-                        Dès que votre profil est qualifié ou si votre demande dépasse le périmètre certifié, 
-                        un <strong>Ticket CRM</strong> est généré pour transmettre votre dossier sans perte de contexte.
-                    </p>
-                </div>
-                """)
+            
 
     return demo
 
